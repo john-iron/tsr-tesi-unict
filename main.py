@@ -38,11 +38,11 @@ class MyMainWindow(QWidget):
 
         # Create Tab 1 content
         tab1_content = RepurposingWindow()
-        tab_widget.addTab(tab1_content, 'Recupero farmaci')  # Placeholder for the first tab
+        tab_widget.addTab(tab1_content, 'Drugs Repurposed Tool')  # Placeholder for the first tab
 
         # Create Tab 2 content by replicating Tab 1 content
         tab2_content = PreProcessingWindow()
-        tab_widget.addTab(tab2_content, 'Preprocessamento nuove linee')  # Placeholder for the second tab
+        tab_widget.addTab(tab2_content, 'New Line Preprocessing Tool')  # Placeholder for the second tab
 
         # Connect the button click event to a function
 

@@ -1,3 +1,5 @@
+import os
+
 import rpy2.robjects as robjects
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap, QFont
@@ -36,8 +38,8 @@ class RepurposingWindow(QWidget):
 
         # You can also access the console_output if needed
         console_output.append(f"--------------")
-        console_output.append(f"Tessuto selezionato: {selected_tissue}")
-        console_output.append(f"Linea Cellulare Selezionata: {selected_element}")
+        console_output.append(f"Selected Tissue: {selected_tissue}")
+        console_output.append(f"Selected CCLE: {selected_element}")
         console_output.append(f"--------------")
 
     def handle_mouse_hover(self, event):
@@ -89,7 +91,7 @@ class RepurposingWindow(QWidget):
         separator_6.setFrameShadow(QFrame.Sunken)
 
         # Create a combo box for TESSUTO
-        tissue_label = QLabel('Seleziona un tessuto:')
+        tissue_label = QLabel('Choose a Tissue:')
         font = QFont("Arial", 12)
         font.setBold(True)
         tissue_label.setFont(font)
@@ -101,24 +103,24 @@ class RepurposingWindow(QWidget):
         if index != -1:
             # If the item is found, set it as the current index
             self.tissue_combo.setCurrentIndex(index)
-        self.tissue_combo.setDisabled(True)
-        # self.tissue_combo.currentIndexChanged.connect(self.update_secondary_combo)
+        #self.tissue_combo.setDisabled(True)
+        self.tissue_combo.currentIndexChanged.connect(self.update_secondary_combo)
 
         # Create a QTextEdit for console output
         self.console_output = QTextEdit(self)
         self.console_output.setReadOnly(True)  # Set it to read-only
 
         # Create the second combo box for selecting the element with the chosen tissue
-        element_label = QLabel('Seleziona la linea Cellulare:')
+        element_label = QLabel("Choose a Cellular Line...")
         element_label.setFont(font)
         self.element_combo = QComboBox(self)
         predefined_element = "A549"
         self.element_combo.addItem(predefined_element)
         self.element_combo.setCurrentText(predefined_element)
-        self.element_combo.setDisabled(True)
+        #self.element_combo.setDisabled(True)
         self.console_output.append(f"--------------")
-        self.console_output.append(f"Tessuto selezionato: {predefined_tissue}")
-        self.console_output.append(f"Linea Cellulare Selezionata: {predefined_element}")
+        self.console_output.append(f"Selected Tissue: {predefined_tissue}")
+        self.console_output.append(f"Selected CCLE: {predefined_element}")
         self.console_output.append(f"--------------")
 
         # Connect the clicked signal of the QListView to a custom function
@@ -128,7 +130,7 @@ class RepurposingWindow(QWidget):
             lambda index: self.handle_selection_change(index, self.console_output))
 
         # Create radio buttons for METODO
-        metodo_label = QLabel('Scegli il metodo di selezione dei geni: ')
+        metodo_label = QLabel('Choose a method ')
         metodo_label.setToolTip('MSSG (Most Statistically Significative Genes)')
         metodo_label.mousePressEvent = self.handle_mouse_hover
 
@@ -146,7 +148,7 @@ class RepurposingWindow(QWidget):
         self.metodo_group.setLayout(metodo_layout)
 
         # Create radio buttons for HOURS
-        time_esperiment_label = QLabel('Durata Esperimento:')
+        time_esperiment_label = QLabel('Experiment duration:')
         time_esperiment_label.setFont(font)
         self.time_esperiment_group = QGroupBox()
         time_esperiment_layout = QHBoxLayout()
@@ -161,7 +163,7 @@ class RepurposingWindow(QWidget):
         self.time_esperiment_group.setLayout(time_esperiment_layout)
 
         # Create a button
-        self.button = QPushButton('Estrai i dati', self)
+        self.button = QPushButton('Extract data', self)
 
         # Create a vertical layout for the lateral panels
         # lateral_layout = QVBoxLayout()
@@ -225,9 +227,9 @@ class RepurposingWindow(QWidget):
         self.selected_method_text = checked
         console_output.clear()
         console_output.append(f"--------------")
-        console_output.append(f"Tessuto selezionato: {selected_tissue}")
-        console_output.append(f"Linea Cellulare Selezionata: {selected_element}")
-        console_output.append(f"Metodo selezionato: {self.selected_method_text}")
+        console_output.append(f"Selected Tissue: {selected_tissue}")
+        console_output.append(f"Selected CCLE: {selected_element}")
+        console_output.append(f"Selected Method: {self.selected_method_text}")
         console_output.append(f"--------------")
 
     def on_timeline_selected_in_repurposing(self, checked_time, console_output):
@@ -236,17 +238,19 @@ class RepurposingWindow(QWidget):
         self.timeline_text = checked_time
         console_output.clear()
         console_output.append(f"--------------")
-        console_output.append(f"Tessuto selezionato: {selected_tissue}")
-        console_output.append(f"Linea Cellulare Selezionata: {selected_element}")
-        console_output.append(f"Metodo selezionato: {self.selected_method_text}")
-        console_output.append(f"Timeline selezionata: {self.timeline_text}")
+        console_output.append(f"Selected Tissue: {selected_tissue}")
+        console_output.append(f"Selected CCLE: {selected_element}")
+        console_output.append(f"Selected Method: {self.selected_method_text}")
+        console_output.append(f"Experiment duration: {self.timeline_text}")
         console_output.append(f"--------------")
 
     def on_button_click(self, console_output):
         m = self.selected_method_text
         t = self.timeline_text
+        selected_tissue = self.tissue_combo.currentText()
+        selected_element = self.element_combo.currentText()
         scenario = ''
-        console_output.append("Verrà processato...")
+        console_output.append("Processing...")
         if m == '50 Most MSSG':
             if t == '6h':
                 console_output.append(f"Scenario 1 : {m},{t}")
@@ -301,8 +305,14 @@ class RepurposingWindow(QWidget):
                 scenario = 'scenario16'
 
         # Load the RDS file
-        rds_file_path = 'src/r_code/Output/4.AUC_versus_connectivity_score/' + scenario + '.rds'
-
+        rds_file_path = ('src/r_code/Output/4.AUC_versus_connectivity_score/'+
+                         selected_element +'_'+
+                         selected_tissue+'/'+
+                         scenario + '.rds')
+        if not os.path.exists(rds_file_path):
+            console_output.append(f" Path not found: {rds_file_path}")
+            console_output.append(f" Seems like there's no experiment for {selected_element}_{selected_tissue}")
+            return
         readRDS = robjects.r['readRDS']
         df = readRDS(rds_file_path)
         df = pandas2ri.rpy2py_dataframe(df)
@@ -326,7 +336,7 @@ class RepurposingWindow(QWidget):
         # print(df[['drug_name', 'connectivity_score_with_LINCS_profile']].head(10))
 
         print(tabulate(df_top10, headers='keys', tablefmt='psql'))
-        console_output.append(f" Farmaci Selezionati\n: {tabulate(df_top10, headers='keys', tablefmt='psql')}")
+        console_output.append(f" Selected drugs \n: {tabulate(df_top10, headers='keys', tablefmt='psql')}")
 
         selected_data = self.get_selected_data()
         self.viewer = DataFrameViewer(df, selected_data)
@@ -334,6 +344,7 @@ class RepurposingWindow(QWidget):
 
         # self.show_message_box(scenario)
         # self.open_second_window()
+
 
     def get_selected_data(self):
         # Retrieve data from your widgets and return it

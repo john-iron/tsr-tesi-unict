@@ -10,7 +10,7 @@ class DataFrameViewer(QMainWindow):
         self.init_ui(dataframe)
 
     def init_ui(self, dataframe):
-        self.setWindowTitle("Tessuto ::" + self.data['selected_tissue'] +
+        self.setWindowTitle("Tissue ::" + self.data['selected_tissue'] +
                             " || CCLE::" + self.data["selected_element"] +
                             " || Method::" + self.data["selected_method"] +
                             " || Timeline::" + self.data["selected_timeline"])
@@ -50,7 +50,7 @@ class DataFrameViewer(QMainWindow):
         # Show a QMessageBox with the DataFrame content
         msg_box = QMessageBox(self)
         msg_box.setWindowTitle('DataFrame Content')
-        msg_box.setText("Salvataggio Effettuato!")
+        msg_box.setText("Saved!")
 
         save_file_dialog = QFileDialog(self)
         save_file_dialog.setDefaultSuffix("csv")

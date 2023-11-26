@@ -1,10 +1,8 @@
 import subprocess
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
+import traceback
 
-import time
-import traceback, sys
+import yaml
+from PyQt5.QtCore import *
 from PyQt5.QtCore import Qt, QRunnable, QObject
 from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtWidgets import (QWidget, QPushButton, QVBoxLayout,
@@ -81,7 +79,7 @@ class PreProcessingWindow(QWidget):
         separator_6.setFrameShadow(QFrame.Sunken)
 
         # Create a combo box for TESSUTO
-        tissue_label = QLabel('Seleziona un tessuto:')
+        tissue_label = QLabel('Choose a Tissue:')
         font = QFont("Arial", 12)
         font.setBold(True)
         tissue_label.setFont(font)
@@ -91,20 +89,20 @@ class PreProcessingWindow(QWidget):
         self.tissue_combo.currentIndexChanged.connect(self.update_secondary_combo)
 
         # Create the second combo box for selecting the element with the chosen tissue
-        element_label = QLabel('Seleziona la linea Cellulare:')
+        element_label = QLabel('Choose a Cellular Line:')
         element_label.setFont(font)
         self.element_combo = QComboBox(self)
-        self.element_combo.addItem("Seleziona una Linea Cellulare...")
+        self.element_combo.addItem("Choose a Cellular Line...")
 
 
         # Create an input text field for Sample
-        sample_label = QLabel('Inserisci il numero di campioni (preprocessing):')
+        sample_label = QLabel('Insert samples (preprocessing):')
 
         sample_label.setFont(font)
         self.sample_input = QLineEdit(self)
 
         # Create radio buttons for METODO
-        metodo_label = QLabel('Scegli il metodo di selezione dei geni: ')
+        metodo_label = QLabel('Choose a method ')
         metodo_label.setToolTip('MSSG (Most Statistically Significative Genes)')
         metodo_label.mousePressEvent = self.handle_mouse_hover
 
@@ -123,7 +121,7 @@ class PreProcessingWindow(QWidget):
         self.metodo_group.setLayout(metodo_layout)
 
         # Create radio buttons for HOURS
-        time_esperiment_label = QLabel('Durata Esperimento:')
+        time_esperiment_label = QLabel('Experiment duration:')
         time_esperiment_label.setFont(font)
         self.time_esperiment_group = QGroupBox()
         time_esperiment_layout = QHBoxLayout()
@@ -140,7 +138,7 @@ class PreProcessingWindow(QWidget):
         self.time_esperiment_group.setLayout(time_esperiment_layout)
 
         # Create a button
-        self.button = QPushButton('Processa i dati', self)
+        self.button = QPushButton('Preprocess', self)
 
         # Create a QTextEdit for console output
         self.console_output = QTextEdit(self)
@@ -198,8 +196,12 @@ class PreProcessingWindow(QWidget):
         # Connect the button click event to a function
         self.button.clicked.connect(lambda: self.on_button_click_in_preprop(self.console_output))
 
+
+        self.sample_input.textChanged.connect(
+            lambda: self.on_sample_selected_in_preprop(self.console_output))
         self.sample_input.returnPressed.connect(
             lambda: self.on_sample_selected_in_preprop(self.console_output))
+
 
         self.metodo_50mssg.clicked.connect(
             lambda checked: self.on_method_selected_in_preprop('50 Most MSSG', self.console_output))
@@ -232,8 +234,8 @@ class PreProcessingWindow(QWidget):
 
         # You can also access the console_output if needed
         console_output.append(f"--------------")
-        console_output.append(f"Tessuto selezionato: {selected_tissue}")
-        console_output.append(f"Linea Cellulare Selezionata: {selected_element}")
+        console_output.append(f"Selected Tissue: {selected_tissue}")
+        console_output.append(f"Selected CCLE: {selected_element}")
         console_output.append(f"--------------")
     def on_sample_selected_in_preprop(self, console_output):
         selected_tissue = self.tissue_combo.currentText()
@@ -241,9 +243,9 @@ class PreProcessingWindow(QWidget):
         self.selected_sample = self.sample_input.text()
         console_output.clear()
         console_output.append(f"--------------")
-        console_output.append(f"Tessuto selezionato: {selected_tissue}")
-        console_output.append(f"Linea Cellulare Selezionata: {selected_element}")
-        console_output.append(f"Campioni selezionati: {self.selected_sample}")
+        console_output.append(f"Selected Tissue: {selected_tissue}")
+        console_output.append(f"Selected CCLE: {selected_element}")
+        console_output.append(f"Samples: {self.selected_sample}")
         console_output.append(f"--------------")
 
     def on_method_selected_in_preprop(self, checked, console_output):
@@ -252,10 +254,10 @@ class PreProcessingWindow(QWidget):
         self.selected_method_text = checked
         console_output.clear()
         console_output.append(f"--------------")
-        console_output.append(f"Tessuto selezionato: {selected_tissue}")
-        console_output.append(f"Linea Cellulare Selezionata: {selected_element}")
-        console_output.append(f"Campioni selezionati: {self.selected_sample}")
-        console_output.append(f"Metodo selezionato: {self.selected_method_text}")
+        console_output.append(f"Selected Tissue: {selected_tissue}")
+        console_output.append(f"Selected CCLE: {selected_element}")
+        console_output.append(f"Samples: {self.selected_sample}")
+        console_output.append(f"Selected Method: {self.selected_method_text}")
         console_output.append(f"--------------")
 
     def on_timeline_selected_in_preprop(self, checked_time, console_output):
@@ -264,38 +266,35 @@ class PreProcessingWindow(QWidget):
         self.timeline_text = checked_time
         console_output.clear()
         console_output.append(f"--------------")
-        console_output.append(f"Tessuto selezionato: {selected_tissue}")
-        console_output.append(f"Linea Cellulare Selezionata: {selected_element}")
-        console_output.append(f"Campioni selezionati: {self.selected_sample}")
-        console_output.append(f"Metodo selezionato: {self.selected_method_text}")
-        console_output.append(f"Timeline selezionata: {self.timeline_text}")
+        console_output.append(f"Selected Tissue: {selected_tissue}")
+        console_output.append(f"Selected CCLE: {selected_element}")
+        console_output.append(f"Samples: {self.selected_sample}")
+        console_output.append(f"Selected Method: {self.selected_method_text}")
+        console_output.append(f"Experiment Duration: {self.timeline_text}")
         console_output.append(f"--------------")
 
     def on_button_click_in_preprop(self, console_output):
         selected_tissue = self.tissue_combo.currentText()
         selected_element = self.element_combo.currentText()
 
-        if selected_element == "Seleziona una Linea Cellulare...":
+        if selected_element == "Choose a Cellular Line...":
             console_output.clear()
-            console_output.append('Seleziona una Linea Cellulare!')
+            console_output.append('Choose a Cellular Line!')
             self.tissue_combo.setFocus()
             return
 
         if self.selected_sample == None:
             console_output.clear()
-            console_output.append('Seleziona un numero di campioni!')
+            console_output.append('Select samples!')
             return
 
         console_output.clear()
-        console_output.append('Verrà processata:')
+        console_output.append('Selected Configuration:')
         console_output.append(f"--------------")
-        console_output.append(f"Tessuto selezionato: {selected_tissue}")
-        console_output.append(f"Linea Cellulare Selezionata: {selected_element}")
-        console_output.append(f"Campioni selezionati: {self.selected_sample}")
-        console_output.append(f"Metodo selezionato: {self.selected_method_text}")
-        console_output.append(f"Timeline selezionata: {self.timeline_text}")
+        console_output.append(f"Selected Tissue: {selected_tissue}")
+        console_output.append(f"Selected CCLE: {selected_element}")
+        console_output.append(f"Samples: {self.selected_sample}")
         console_output.append(f"--------------")
-        console_output.append(f"La Generazione dei dati richiederà MOLTO tempo!")
 
         path = 'src/r_code/test_python/'
         r_script = 'main.R'
@@ -306,12 +305,41 @@ class PreProcessingWindow(QWidget):
                             str(self.selected_sample),#args[3]
                             str(path)#args[4]
                             ]
-        print(r_script)
-        worker = Worker(self.run_script_R, path + r_script, script_arguments, console_output)
-        worker.signals.result.connect(self.print_output)
-        worker.signals.finished.connect(self.thread_complete)
-        worker.signals.progress.connect(self.progress_fn)
-        self.threadpool.start(worker)
+        #Creazioen file YAML
+        linea_ccle = selected_element+'_'+selected_tissue
+
+        parametri = {
+            'linea_ccle' :
+                linea_ccle,
+            'campioni' :
+                self.selected_sample
+        }
+        percorso_file_config = 'src/config.yaml'
+        # Scrivi i parametri nel file config.yaml utilizzando PyYAML
+        with open(percorso_file_config, 'w') as file_config:
+            yaml.dump(parametri, file_config, default_flow_style=False)
+
+        print(f"File config.yaml created in {percorso_file_config}")
+
+        # Specifica il percorso del tuo Snakefile e del file config.yaml
+        percorso_snakefile = 'src/snakefile'
+
+        # Costruisci il comando per eseguire Snakemake
+        comando_snakemake = f"snakemake --cores 1 --snakefile  {percorso_snakefile} --configfile {percorso_file_config}"
+
+        # Esegui il comando utilizzando subprocess
+        try:
+            subprocess.run(comando_snakemake, shell=True, check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Error during execution of Snakemake: {e}")
+
+
+        #print(r_script)
+        #worker = Worker(self.run_script_R, path + r_script, script_arguments, console_output)
+        #worker.signals.result.connect(self.print_output)
+        #worker.signals.finished.connect(self.thread_complete)
+        #worker.signals.progress.connect(self.progress_fn)
+        #self.threadpool.start(worker)
 
     def thread_complete(self):
         print("THREAD COMPLETE!")
