@@ -1,12 +1,5 @@
 #!/usr/bin/env Rscript
-args = commandArgs(trailingOnly=TRUE)
-# test if there is at least one argument: if not, return an error
-if (length(args)==0) {
-  stop("At least one argument must be supplied (input file).n", call.=FALSE)
-} else if (length(args)==1) {
-  # default sample computing
-  args[2] = ""
-}
+
 ###
 # PRISM REPURPOSING SECONDARY DATASET DATA PROCESSING SCRIPT
 # Author : Mustafa Anil Kocak, mkocak@broadinstitute.org
@@ -24,8 +17,9 @@ if (length(args)==0) {
 
 ## Please load the missing libraries by uncommenting the first three lines below
 #install.packages("tidyverse", "data.table", "magrittr", "reshape2", "drc")
-#install.packages("BiocManager")
-#BiocManager::install("sva")
+install.packages("BiocManager")
+BiocManager::install("sva")
+
 library(tidyverse)
 library(data.table)
 library(magrittr)
@@ -85,10 +79,20 @@ apply_combat <- function(Y) {
 # ----
 
 ## Please modify the following three lines to the appropriate adresses to the files downloaded from depmap.org
-treatment_info_path = "External_input/corsello_input/secondary-screen-replicate-treatment-info.csv"
-pooling_info_path = "External_input/corsello_input/secondary-screen-pooling-info.csv"
-secondary_MFI_path = "External_input/corsello_input/secondary-screen-mfi.csv"
-sec_screencellline_info = "External_input/corsello_input/secondary-screen-cell-line-info.csv"
+#treatment_info_path = "/Users/iron_john/Documents/Università/TESI/External_input/corsello-input/secondary-screen-replicate-treatment-info.csv"
+#pooling_info_path = "/Users/iron_john/Documents/Università/TESI/test/secondary-screen-pooling-info.csv"
+#secondary_MFI_path = "/Users/iron_john/Documents/Università/TESI/test/secondary-screen-mfi.csv"
+#sec_screencellline_info = "/Users/iron_john/Documents/Università/TESI/test/secondary-screen-cell-line-info.csv"
+
+linea_cellulare <- snakemake@params[['linea_ccle']]
+campioni <- snakemake@params[['campioni']] 
+
+
+treatment_info_path = snakemake@input[['treatment_info_path']]
+pooling_info_path = snakemake@input[['pooling_info_path']]
+secondary_MFI_path = snakemake@input[['secondary_MFI_path']]
+sec_screencellline_info = snakemake@input[['sec_screencellline_info']]
+
 # ----
 # LOAD THE DATA
 # ----
@@ -158,12 +162,7 @@ DATA = DATA %>%
   split(.$condition) %>%
   purrr::map_dfr(~dplyr::mutate(.x, log2.Viability.cb = apply_combat(.))) 
 
-# Modifica filtro dataset --> args[1] è la linea cellulare inviata
-# Esempio A549_LUNG
-linea_cellulare <- c(args[2],args[1])
-campioni <-args[3]
-
-#print(paste(x, collapse="_"))
+#Utilizzo la linea cellulare
 
 secondary_screen_cell_line_info = data.table::fread(sec_screencellline_info) %>%
   dplyr::filter(ccle_name == linea_cellulare) %>%
@@ -248,19 +247,23 @@ DRC_TABLE = DRC %>%
 # SAVE THE PROCESSED FILES 
 # ----
 
-ARTIFACTS %>%
-  write_csv("secondary_outlier_pools.csv")
+#ARTIFACTS %>%
+#  write_csv("secondary_outlier_pools.csv")
 
-SSMD_TABLE %>%
-  write_csv("secondary_ssmd_table.csv")
+#SSMD_TABLE %>%
+#  write_csv("secondary_ssmd_table.csv")
 
-DATA %>% 
-  reshape2::acast(row_name ~ column_name, value.var = "log2.Viability.cb") %>%
-  write.csv("External_input/DepMap_Public_21Q2/secondary_logfold_change.csv")
+#DATA %>% 
+#  reshape2::acast(row_name ~ column_name, value.var = "log2.Viability.cb") %>%
+  #write.csv("External_input/DepMap_Public_21Q2/secondary_logfold_change.csv")
+#  write.csv(snakemake@output[['secondary_logfold_change']])
 
-DATA.median.collapsed %>%
-  reshape2::acast(row_name ~ col_name, value.var = "log2.Viability.cb", fun.aggregate = function(x) mean(x, na.rm = T)) %>%
-  write.csv("External_input/DepMap_Public_21Q2/secondary_replicate_collapsed_logfold_change.csv")
+#DATA.median.collapsed %>%
+#  reshape2::acast(row_name ~ col_name, value.var = "log2.Viability.cb", fun.aggregate = function(x) mean(x, na.rm = T)) %>%
+  #write.csv("External_input/DepMap_Public_21Q2/secondary_replicate_collapsed_logfold_change.csv")
+#  write.csv(snakemake@output[['secondary_replicate_collapsed_logfold_change']])
 
 DRC_TABLE %>%
-  write_csv("External_input/DepMap_Public_21Q2/secondary_drc_table.csv")
+  #write_csv("External_input/DepMap_Public_21Q2/secondary_drc_table.csv")
+  write.csv(snakemake@output[['secondary_drc_table']])
+

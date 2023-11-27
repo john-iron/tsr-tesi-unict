@@ -9,9 +9,9 @@ library(matrixStats)
 library(ragg)
 
 # Load files:
-project_info <- as.data.frame(read_delim("External_input/GDC/GDC-PANCAN.project_info.tsv","\t", escape_double = FALSE, trim_ws = TRUE))
-gene_expr <- as.data.frame(read_delim("External_input/GDC/GDC-PANCAN.htseq_counts.tsv","\t", escape_double = FALSE, trim_ws = TRUE))
-gene_info <- readRDS("External_input/gene_meta.Rds")
+project_info <- as.data.frame(read_delim(snakemake@input[['project_info']],"\t", escape_double = FALSE, trim_ws = TRUE))
+gene_expr <- as.data.frame(read_delim(snakemake@input[['gene_expr']],"\t", escape_double = FALSE, trim_ws = TRUE))
+gene_info <- readRDS(snakemake@input[['drug_ranef_and_sd']])
 
 
 # Project info 
@@ -47,15 +47,7 @@ gene_stats <-
     Mean = rowMeans(gene_expr),
     SDs = rowSds(as.matrix(gene_expr))
   )
-Figure_S1 <- ggplot(data = gene_stats, aes(x = Mean, y = sqrt(SDs))) + 
-  geom_point() + geom_smooth() + geom_vline(xintercept = 6, color = "red") + labs(
-    x = "Mean log2(count size + 1)", y = "Sqrt(standard deviation)"
-  )
 
-
-ragg::agg_png("Publication/Figures/Figure_S1.png", width = 12.80, height = 7.20, units = "in", res = 300)
-print(Figure_S1)
-dev.off()
 
 
 # From Mean > 6 there's a downward trend visible
@@ -66,10 +58,10 @@ for (i in 1:ncol(gene_expr)) gene_expr[,i] <- (2 ^ gene_expr[,i]) - 1
 project_info <- project_info[order(project_info$sample),]
 gene_expr <- gene_expr[,order(colnames(gene_expr))]
 
-
-  
-  tumorType <- 'LUAD'
-  print(paste0("Processing ", tumorType))
+tumorType <- snakemake@input[['tumor_type']]
+  #print(paste0("Processing ", tumorType))
+  tumorType <- combined_Normal_Tumor_frequency$Tumor_type[i]
+  print(paste0("Processing ", tumorType, "; file = ", i))
   
   project_info_subset <- subset(project_info, disease_code.project == tumorType)
   project_info_subset$tissue_type <-
@@ -99,10 +91,19 @@ gene_expr <- gene_expr[,order(colnames(gene_expr))]
   toptable_result$Tumor <- tumorType
   toptable_result <- toptable_result[,c("Tumor","Gene","log2_FC_estimate","log2_FC_estimate_SE","t","P.Value","adj.P.Val")]
   
-  combined_tumor_vs_normal_DEG <- toptable_result
+  if (i == 1){
+    
+    combined_tumor_vs_normal_DEG <- toptable_result
+    
+  } else {
+    
+    combined_tumor_vs_normal_DEG <- rbind(combined_tumor_vs_normal_DEG, toptable_result)
+    
+  }
 
 
-saveRDS(combined_tumor_vs_normal_DEG, file = "Output/3.Tumor_DEG/combined_tumor_vs_normal_DEG.Rds")
+
+saveRDS(combined_tumor_vs_normal_DEG, file = snakemake@output[["tumor_vs_normal"]])
 
 #### Combine all tumor type DEG into 1 meta-analysis estimate each: ###
 tumor_types <- unique(combined_tumor_vs_normal_DEG$Tumor)
@@ -133,4 +134,4 @@ average_log2_fold_change_vs_normal$Mean_log2_fold_change_div_Tau <-
 ggplot(data = average_log2_fold_change_vs_normal, aes(x = Mean_log2_fold_change_div_Tau)) +
   geom_density()
 
-saveRDS(average_log2_fold_change_vs_normal, file = "Output/3.Tumor_DEG/average_log2_fold_change_vs_normal.Rds")
+saveRDS(average_log2_fold_change_vs_normal, file = snakemake@out[["average_log2fold"]])

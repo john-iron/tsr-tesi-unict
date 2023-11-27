@@ -2,29 +2,33 @@
 #library(ggplot2)
 library(PharmacoGx)
 library(ragg)
-source("Functions/getScenarioInput_tumor_vs_normal.R")
-source("Functions/getSensitivitySignature.R")
-source("Functions/getSignificanceSameDirection.R")
-source("Functions/get_Alternative_CMAP_score.R")
-source("Functions/cmap_score_new.R")
-source("Functions/get_Alternative_Connectivity_Score_random_distribution.R")
+source("r_code/data/Functions/getScenarioInput_tumor_vs_normal.R")
+source("r_code/data/Functions/getSensitivitySignature.R")
+source("r_code/data/Functions/getSignificanceSameDirection.R")
+source("r_code/data/Functions/get_Alternative_CMAP_score.R")
+source("r_code/data/Functions/cmap_score_new.R")
+source("r_code/data/Functions/get_Alternative_Connectivity_Score_random_distribution.R")
 
   ### Load data: ###
   scenarioInput <- getScenarioInput_tumor_vs_normal()
-  TCGA_project_to_PRISM_tissue_final<-readRDS("Output/1.process_PRISM_data/TCGA_project_to_PRISM_tissue_enriched.Rds")
+  TCGA_project_to_PRISM_tissue_final<-readRDS(snakemake@input[["TCGA_project_to_PRISM_tissue_enriched"]])
+    #"Output/1.process_PRISM_data/TCGA_project_to_PRISM_tissue_enriched.Rds")
   processing_tumor<-TCGA_project_to_PRISM_tissue_final$TCGA_tumor
   
   scenarioInput <- subset(scenarioInput, scenarioInput$log2_FC_input==processing_tumor)
-  log2_FC_input <- readRDS("Output/3.Tumor_DEG/combined_tumor_vs_normal_DEG.Rds")
+  log2_FC_input <- readRDS(snakemake@input[["tumor_vs_normal"]])
+    #"Output/3.Tumor_DEG/combined_tumor_vs_normal_DEG.Rds")
   log2_FC_input <- subset(log2_FC_input, Tumor == processing_tumor)
   log2_FC_input$t.value <- log2_FC_input$log2_FC_estimate / log2_FC_input$log2_FC_estimate_SE
 
   # PRISM:
-  drug_ranef_and_sd <- readRDS(file = "Output/1.process_PRISM_data/drug_ranef_and_sd.Rds")
+  drug_ranef_and_sd <- readRDS(file = snakemake@input[["drug_ranef_and_sd"]])
+    #Output/1.process_PRISM_data/drug_ranef_and_sd.Rds")
 
   # LINCS:
-  gene_meta <- readRDS("External_input/gene_meta.Rds")
-  DEG_LINCS <- readRDS("Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_combined_incl.corrected.Rds")
+  gene_meta <- readRDS(snakemake@input[["gene_meta"]])
+  DEG_LINCS <- readRDS(snakemake@input[["PRISM_combined_DEG_drugs_corrected"]])
+    #"Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_combined_incl.corrected.Rds")
   
   DEG_LINCS <- merge(x = DEG_LINCS, y = gene_meta, by.x = "gene", by.y = "Gene name") 
   DEG_LINCS$gene <- DEG_LINCS$`Gene stable ID`
@@ -38,9 +42,10 @@ source("Functions/get_Alternative_Connectivity_Score_random_distribution.R")
   #Creo la cartella di Output
  
   abs_path <- getwd()
-  scenario_path <-'Output/4.AUC_versus_connectivity_score/A549_LUNG'
+  scenario_path <-paste0(snakemake@input[['dir_path']],snakemake@input[['linea_ccle']])
   newpath <- file.path(abs_path, scenario_path)
   dir.create(newpath)
+
   ### Start loop: ###
   #Gli scenari generati saranno sempre 16 per ogni Linea Cellulare
   for(i in 1:16){
@@ -89,7 +94,7 @@ source("Functions/get_Alternative_Connectivity_Score_random_distribution.R")
     for (d in 1:nrow(drugs)){
       #507 farmaci
       #print(d)
-      print(paste0("FARMACI  = ",drugs[d,"drug_name"] ))
+      print(paste0("FARMACI  = ", d))
       drugSignature <- subset(DEG_LINCS, drug == drugs[d,"drug_name"])
       
       if (nrow(drugSignature) > 0){
@@ -123,21 +128,26 @@ source("Functions/get_Alternative_Connectivity_Score_random_distribution.R")
       }
     }
     
-    saveRDS(drugs, file = paste0(scenario_path,"/","scenario",i,".Rds"))
+    saveRDS(drugs, file = paste0(snakemake@input[['dir_path']],
+              snakemake@input[['linea_ccle']],"/scenario",i,".Rds"))
     
   }
-  
 }
+  
 
-net_drug_effect_accross_tumor_type <- readRDS("Output/1.process_PRISM_data/drug_ranef_and_sd.Rds")
-net_drug_effect_by_tumor_type <- readRDS("Output/1.process_PRISM_data/net_drug_effect_by_tumor_type.Rds")
-files <- list.files(scenario_path)
+
+net_drug_effect_accross_tumor_type <- readRDS(snakemake@output[["drug_ranef_and_sd"]])
+  #"Output/1.process_PRISM_data/drug_ranef_and_sd.Rds")
+net_drug_effect_by_tumor_type <- readRDS(snakemake@output[["net_drug_effect_by_tumor_type"]])
+  #"Output/1.process_PRISM_data/net_drug_effect_by_tumor_type.Rds")
+files <- list.files(snakemake@output[["auc_conn"]])
+  #"Output/4.AUC_versus_connectivity_score")
 scenarios <- as.integer(substr(files, 9, nchar(files)-4)) # Missing PAAD with Bin Chen method because of no significant genes
 scenarios <- scenarios[order(scenarios)]
 
 
 for (i in scenarios){
-  tmp <- readRDS(paste0(scenario_path,"/","scenario",i,".Rds"))
+  tmp <- readRDS(paste0(snakemake@output[["auc_conn"]],"/scenario",i,".Rds"))
   scenarioInput <- getScenarioInput_tumor_vs_normal()
   scenarioInput <- subset(scenarioInput, scenarioInput$log2_FC_input==processing_tumor)
   scenarioInput$scenario_index <- i
@@ -273,32 +283,7 @@ wilcox.test(x = subset(Figure_4_plotInput, gene_selection == "150_most_significa
 wilcox.test(x = subset(Figure_4_plotInput, gene_selection == "Bin_Chen_original" & `Drug signatures used` == "Uncorrected")$Rho)
 wilcox.test(x = subset(Figure_4_plotInput, gene_selection == "Bin_Chen_original" & `Drug signatures used` == "Corrected")$Rho)
 
-# Tables:
-Figure_4_plotInput$Label <- paste0(round(Figure_4_plotInput$Rho, digits = 2)," (",Figure_4_plotInput$Rho.p.value,")")
-Table_1 <- subset(Figure_4_plotInput, `Drug signatures used` == "Uncorrected", select = c("log2_FC_input","gene_selection","Label"))
-write.csv(Table_1, file = "Publication/Tables/Table_1.csv", row.names = F)
 
-Table_2 <- subset(Figure_4_plotInput, `Drug signatures used` == "Corrected", select = c("log2_FC_input","gene_selection","Label"))
-write.csv(Table_2, file = "Publication/Tables/Table_2.csv", row.names = F)
-
-Table_3 <- subset(Figure_4_plotInput, `Drug signatures used` == "Uncorrected" & gene_selection == "150_most_significant")
-Table_3 <- Table_3[,c("log2_FC_input","R2_connectivity_score","P.value_connectivity_scores","R2_AUC_other_celllines","P.value_AUC_other_celllines","R2_benefit_adding_connectivity_score","P.value_connectivity_scores_added_to_AUC_other_celllines")]
-write.csv(Table_3, file = "Publication/Tables/Table_3.csv", row.names = F)
-median(Table_3$R2_connectivity_score)
-median(Table_3$R2_AUC_other_celllines)
-median(Table_3$R2_benefit_adding_connectivity_score)
-
-Table_S4 <- subset(scenarioOutput, DEG_condition == "6h" & gene_selection == "150_most_significant")
-Table_S4 <- Table_S4[,c("log2_FC_input","R2_connectivity_score","P.value_connectivity_scores","R2_benefit_adding_connectivity_score","P.value_connectivity_scores_added_to_AUC_other_celllines")]
-write.csv(Table_S4, file = "Publication/Tables/Table_S4.csv", row.names = F)
-median(Table_S4$R2_connectivity_score)
-median(Table_S4$R2_benefit_adding_connectivity_score)
-
-Table_S5 <- subset(scenarioOutput, DEG_condition == "24h" & gene_selection == "150_most_significant")
-Table_S5 <- Table_S5[,c("log2_FC_input","R2_connectivity_score","P.value_connectivity_scores","R2_benefit_adding_connectivity_score","P.value_connectivity_scores_added_to_AUC_other_celllines")]
-write.csv(Table_S5, file = "Publication/Tables/Table_S5.csv", row.names = F)
-median(Table_S5$R2_connectivity_score)
-median(Table_S5$R2_benefit_adding_connectivity_score)
 
 
 

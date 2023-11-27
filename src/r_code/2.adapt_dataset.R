@@ -6,17 +6,22 @@ library(reshape2)
 library(sva)
 library(drc)
 
-sec_screencellline_info = "External_input/DepMap_Public_21Q2/secondary-screen-dose-response-curve-parameters.csv"
-secondary_drc_gen = "External_input/DepMap_Public_21Q2/secondary_drc_table.csv"
+sec_screencellline_info = snakemake@input[['sec_scellline_info']]
+secondary_drc_gen = snakemake@input[['secondary_drc_table']]
+
+print(sec_screencellline_info)
+print(secondary_drc_gen)
 
 #Seleziono la row_name corrispondente tramite sec_drc[1,8]
 #Esempio per A549_LUNG row_name == ACH-000681
 
-sec_drc = data.table::fread(secondary_drc_gen)
+sec_drc <- data.table::fread(secondary_drc_gen)
+esempio <- data.table::fread(sec_screencellline_info) 
 
-sec_screencellline_info_reduced = data.table::fread(sec_screencellline_info) %>%
-  dplyr::filter(row_name==toString(sec_drc[1,8]))
-
+#print(esempio$row_name)
+print(toString(sec_drc[1,9]))
+sec_screencellline_info_reduced<-esempio[esempio$row_name == toString(sec_drc[1,9]),]
+print(esempio[esempio$row_name == toString(sec_drc[1,9]),])
 
 sec_drc_distinct = distinct(sec_drc)
 
@@ -31,4 +36,4 @@ colnames(df)[colnames(df) == "row_name.x"] <- "row_name"
 colnames(df)[colnames(df) == "ccle_name.x"] <- "ccle_name"
 
 
-write.csv(df, "External_input/DepMap_Public_21Q2/secondary-screen-dose-response-curve-parameters_reduced.csv", row.names=FALSE)
+write.csv(df, snakemake@output[['secondary_sdrc']], row.names=FALSE)

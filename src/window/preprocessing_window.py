@@ -322,7 +322,7 @@ class PreProcessingWindow(QWidget):
         print(f"File config.yaml created in {percorso_file_config}")
 
         # Specifica il percorso del tuo Snakefile e del file config.yaml
-        percorso_snakefile = 'src/snakefile'
+        percorso_snakefile = 'src/Snakefile'
 
         # Costruisci il comando per eseguire Snakemake
         comando_snakemake = f"snakemake --cores 1 --snakefile  {percorso_snakefile} --configfile {percorso_file_config}"

@@ -10,7 +10,7 @@ library("metafor")
 #library("ggplot2")
 
 #Qui vengono istanziate delle variabili con il nome uguale al nome file, escluso il prefisso del file
-source("Functions/loadLINCSmeta.R")
+source("r_code/data/Functions/loadLINCSmeta.R")
 
 #Lincs 
 #https://docs.google.com/document/d/1q2gciWRhVCAAnlvF2iRLuJ7whrGP6QjpsCMq1yWz7dU/edit?pli=1#heading=h.5lvc853bqeqc
@@ -19,18 +19,16 @@ source("Functions/loadLINCSmeta.R")
 #and inferred values based on those normalized values
 
 # 65 GB file, download from https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE92742 seperately and specify path:
-gctx_path <- "LINCS/GSE92742_Broad_LINCS_Level3_INF_mlr12k_n1319138x12328.gctx"
+gctx_path <- snakemake@input[["gctx_path"]]
 
-drug_ranef_and_sd <- readRDS("Output/1.process_PRISM_data/drug_ranef_and_sd.Rds")
+drug_ranef_and_sd <- readRDS(snakemake@input[['drug_ranef_and_sd']])
 PRISM_drugs <- unique(drug_ranef_and_sd$drug_name)
-
 # Using 6h experiments: 48,075 obs, 908 rna plates and 67 cell lines, 572 unique pert_iname
 # Using 24h experiments: 41,952 obs, 1,022 rna plates and 28 cell lines, 514 unique pert_iname
 
 for (pert_time_subset in c("6","24")){
-  
   loadLINCSmeta()
-  
+
   gene_info <- subset(gene_info, pr_is_lm == 1)
   gene_info$pr_gene_id <- as.character(gene_info$pr_gene_id)
   #978 geni
@@ -51,7 +49,7 @@ for (pert_time_subset in c("6","24")){
   cell_lines_per_drug_freq <- as.data.frame(table(unique(test_10um_subset[,c("cell_id","pert_iname")])$pert_iname),stringsAsFactors = FALSE)
   
   LINCS_experiments_and_cell_lines_per_drug <- list(experiments_per_drug_freq = experiments_per_drug_freq, cell_lines_per_drug_freq = cell_lines_per_drug_freq)
-  saveRDS(LINCS_experiments_and_cell_lines_per_drug, file = paste0("Output/2.LINCS_preprocessing/LINCS_experiments_and_cell_lines_per_drug_at_",pert_time_subset,"h.Rds"))
+  saveRDS(LINCS_experiments_and_cell_lines_per_drug, file = paste0(snakemake@output[['lincs_experiments']],pert_time_subset,"h.Rds"))
   
   sum(cell_lines_per_drug_freq$Freq >= 5) / 669 # 85% for 6h
   cell_lines_per_drug_freq <- cell_lines_per_drug_freq[cell_lines_per_drug_freq$Freq >= 5,]
@@ -85,7 +83,6 @@ for (pert_time_subset in c("6","24")){
   for (i in 1:978){
     
     print(i)
-
     input <- inst_info
     
     data_subset <-
@@ -94,9 +91,10 @@ for (pert_time_subset in c("6","24")){
         rid = gene_info$pr_gene_id[i],
         cid = input$inst_id 
       )@mat  
-    
+
+
     input$expr <- data_subset[1,]
-    
+
     model_output <- 
       lmer(expr ~ pert_iname + (1|cell_id) + (1|rna_plate), data = input)
     
@@ -122,13 +120,14 @@ for (pert_time_subset in c("6","24")){
     }
   }
   
-  saveRDS(combined_DEG_drugs, file = paste0("Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_",pert_time_subset,"h.Rds"))
-  
+  saveRDS(combined_DEG_drugs, file = paste0(snakemake@output[['combined_deg_drug']],pert_time_subset,"h.Rds"))
+  print('arrivato2')
 }
 
 ### Combine 6h and 24h using meta-analysis: ###
-PRISM_combined_DEG_drugs_6h <- readRDS("Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_6h.Rds")
-PRISM_combined_DEG_drugs_24h <- readRDS("Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_24h.Rds")
+
+PRISM_combined_DEG_drugs_6h <- readRDS(paste0(snakemake@output[['combined_deg_drug']],"6h.Rds"))
+PRISM_combined_DEG_drugs_24h <- readRDS(paste0(snakemake@output[['combined_deg_drug']],"24h.Rds"))
 
 shared_drugs <- intersect(unique(PRISM_combined_DEG_drugs_6h$drug), unique(PRISM_combined_DEG_drugs_24h$drug))
 PRISM_combined_DEG_drugs_6h <- PRISM_combined_DEG_drugs_6h[PRISM_combined_DEG_drugs_6h$drug %in% shared_drugs,]
@@ -148,11 +147,11 @@ for (i in 1:nrow(PRISM_combined_DEG_drugs_combined)){
     c(meta_output$b[,1], meta_output$se, meta_output$zval, meta_output$pval, meta_output$QEp)
   
 }
-saveRDS(PRISM_combined_DEG_drugs_combined, file = "Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_combined.Rds")
+saveRDS(PRISM_combined_DEG_drugs_combined, file = snakemake@output[['PRISM_combined_DEG_drugs']])
 
 ### Filtering out down-stream effects of reduced cell viability: ###
-PRISM_combined_DEG_drugs_combined <- readRDS("Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_combined.Rds")
-drug_ranef_and_sd <- readRDS("Output/1.process_PRISM_data/drug_ranef_and_sd.Rds")
+PRISM_combined_DEG_drugs_combined <- readRDS(snakemake@output[['PRISM_combined_DEG_drugs']])
+drug_ranef_and_sd <- readRDS(snakemake@output[['drug_ranef_and_sd']])
 PRISM_combined_DEG_drugs_combined <- merge(
   x = PRISM_combined_DEG_drugs_combined, y = drug_ranef_and_sd, by.x = "drug", by.y = "drug_name"
 )
@@ -216,7 +215,7 @@ for (i in 1:length(input_columns)){
   
 }
 
-saveRDS(gene_association_with_toxicity_combined,"Output/2.LINCS_preprocessing/PRISM_gene_association_with_toxicity_combined.Rds")
+saveRDS(gene_association_with_toxicity_combined,snakemake@output[['gene_association_with_toxicity']])
 
 
 ### Calculate meta-analysis combined estimate of corrected 6h and 24h estimates: ###
@@ -234,4 +233,4 @@ for (i in 1:nrow(PRISM_combined_DEG_drugs_combined)){
 }
 # Example for drug == "YM-155" & gene == "GADD45A":
 # Standard error decreases from 0.3 uncorrected to 0.1 for combined corrected data, because of no more heterogenity in the different estimates from 6h and 24h
-saveRDS(PRISM_combined_DEG_drugs_combined, file = "Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_combined_incl.corrected.Rds")
+saveRDS(PRISM_combined_DEG_drugs_combined, file = snakemake@output[['PRISM_combined_DEG_drugs_corrected']])
