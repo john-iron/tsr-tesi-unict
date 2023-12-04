@@ -1,5 +1,10 @@
 #!/usr/bin/env Rscript
 library("readr")
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("cmapR")
+BiocManager::install("PharmacoGx")
 library("cmapR")
 library("limma")
 library("PharmacoGx")
@@ -10,7 +15,7 @@ library("metafor")
 #library("ggplot2")
 
 #Qui vengono istanziate delle variabili con il nome uguale al nome file, escluso il prefisso del file
-source("r_code/data/Functions/loadLINCSmeta.R")
+source(snakemake@input[['load_LINCS_meta']])
 
 #Lincs 
 #https://docs.google.com/document/d/1q2gciWRhVCAAnlvF2iRLuJ7whrGP6QjpsCMq1yWz7dU/edit?pli=1#heading=h.5lvc853bqeqc

@@ -305,7 +305,7 @@ class RepurposingWindow(QWidget):
                 scenario = 'scenario16'
 
         # Load the RDS file
-        rds_file_path = ('src/r_code/Output/4.AUC_versus_connectivity_score/'+
+        rds_file_path = ('src/r_code/data/Output/4.AUC_versus_connectivity_score/'+
                          selected_element +'_'+
                          selected_tissue+'/'+
                          scenario + '.rds')

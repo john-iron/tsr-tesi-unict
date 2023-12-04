@@ -58,9 +58,10 @@ for (i in 1:ncol(gene_expr)) gene_expr[,i] <- (2 ^ gene_expr[,i]) - 1
 project_info <- project_info[order(project_info$sample),]
 gene_expr <- gene_expr[,order(colnames(gene_expr))]
 
-tumorType <- snakemake@input[['tumor_type']]
-  #print(paste0("Processing ", tumorType))
-  tumorType <- combined_Normal_Tumor_frequency$Tumor_type[i]
+#tumorType <- snakemake@input[['tumor_type']]
+tumorType = read_file(snakemake@input[['tumor_type_r']], header = FALSE)
+
+
   print(paste0("Processing ", tumorType, "; file = ", i))
   
   project_info_subset <- subset(project_info, disease_code.project == tumorType)

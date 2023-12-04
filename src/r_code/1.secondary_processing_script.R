@@ -17,8 +17,8 @@
 
 ## Please load the missing libraries by uncommenting the first three lines below
 #install.packages("tidyverse", "data.table", "magrittr", "reshape2", "drc")
-install.packages("BiocManager")
-BiocManager::install("sva")
+#install.packages("BiocManager")
+#BiocManager::install("sva")
 
 library(tidyverse)
 library(data.table)

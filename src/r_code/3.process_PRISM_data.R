@@ -3,13 +3,13 @@
 library(lme4)
 library(egg)
 library(sets)
-source("r_code/data/Functions/load_Prism_data_and_model.R")
-source("r_code/data/Functions/add_association_between_residuals_and_cellLine_ranef.R")
+source(snakemake@input[['fun_loadprism']])
+source(snakemake@input[['fun_add_ass']])
 
 #importo il dataset modificato
 input <- 
   read.csv(
-    snakemake@input[['input_file']], 
+    snakemake@input[['input_file']],
     stringsAsFactors = F
   )
 
@@ -158,7 +158,7 @@ for (i in 1:(nrow(TCGA_project_to_PRISM_tissue))){
   }
   
   # Open a connection to a file for writing
-  file_conn <- file("External_input/GDC/tumor.txt", open = "w")
+  file_conn <- file(snakemake@input[['tumor_type']], open = "w")
   
   # Write the value to the file
   cat(label, file = file_conn)

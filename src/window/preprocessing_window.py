@@ -328,11 +328,18 @@ class PreProcessingWindow(QWidget):
         comando_snakemake = f"snakemake --cores 1 --snakefile  {percorso_snakefile} --configfile {percorso_file_config}"
 
         # Esegui il comando utilizzando subprocess
+        '''
         try:
             subprocess.run(comando_snakemake, shell=True, check=True)
         except subprocess.CalledProcessError as e:
             print(f"Error during execution of Snakemake: {e}")
+        '''
 
+        worker = Worker(self.run_snakemake, comando_snakemake, console_output)
+        worker.signals.result.connect(self.print_output)
+        worker.signals.finished.connect(self.thread_complete)
+        worker.signals.progress.connect(self.progress_fn)
+        self.threadpool.start(worker)
 
         #print(r_script)
         #worker = Worker(self.run_script_R, path + r_script, script_arguments, console_output)
@@ -349,6 +356,25 @@ class PreProcessingWindow(QWidget):
 
     def print_output(self):
         print('Thread Concluso!')
+
+    def run_snakemake(self, comando_snakemake,console_output):
+        # Esegui il comando utilizzando subprocess
+        try:
+            result = subprocess.run(comando_snakemake, shell=True, check=True)
+            output = ''
+            if result.returncode == 0:
+                output = result.stdout
+                print(f"Output:\n{output}")
+            else:
+                error = result.stderr
+                print(f"Error:\n{error}")
+            console_output.append(comando_snakemake + "Pipeline Snakemake eseguita correttamente.\n" + output)
+
+        except subprocess.CalledProcessError as e:
+            print(f"Error during execution of Snakemake: {e}")
+        except Exception as e:
+            console_output.append(f"An error occurred: {str(e)}")
+
 
     def run_script_R(self, r_script_path, r_script_argument,console_output):
         try:

@@ -1,117 +1,125 @@
 configfile: "config.yaml"
+path = "src/r_code/data/"
 
 ruleorder: secondary_processing_script > adapt_dataset > process_PRISM_data > LINCS_preprocessing > tumor_DEG > final
 rule all:
     input:
-        "src/r_code/data/External_input/DepMap_Public_21Q2/secondary_drc_table.csv",
-        "src/r_code/data/External_input/DepMap_Public_21Q2/secondary-screen-dose-response-curve-parameters_reduced.csv",
-        'src/r_code/data/Output/1.process_PRISM_data/drug_ranef_and_sd.Rds',
-        "src/r_code/data/Output/1.process_PRISM_data/number_of_cellLines_tested_per_drug.Rds",
-        'src/r_code/data/Output/1.process_PRISM_data/net_drug_effect_by_tumor_type.Rds',
-        'src/r_code/data/Output/1.process_PRISM_data/TCGA_project_to_PRISM_tissue_enriched.Rds',
-        'src/r_code/data/Output/2.LINCS_preprocessing/LINCS_experiments_and_cell_lines_per_drug_at_',
-        'src/r_code/data/Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_',
-        'src/r_code/data/Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_combined.Rds',
-        'src/r_code/data/Output/2.LINCS_preprocessing/PRISM_gene_association_with_toxicity_combined.Rds',
-        'src/r_code/data/Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_combined_incl.corrected.Rds',
-        "src/r_code/data/Output/3.Tumor_DEG/combined_tumor_vs_normal_DEG.Rds",
-        "src/r_code/data/Output/3.Tumor_DEG/average_log2_fold_change_vs_normal.Rds",
-        "src/r_code/data/Output/4.AUC_versus_connectivity_score"
+        path+"External_input/DepMap_Public_21Q2/secondary_drc_table.csv",
+        path+"External_input/DepMap_Public_21Q2/secondary-screen-dose-response-curve-parameters_reduced.csv",
+        path+"Output/1.process_PRISM_data/drug_ranef_and_sd.Rds",
+        path+"Output/1.process_PRISM_data/number_of_cellLines_tested_per_drug.Rds",
+        path+"Output/1.process_PRISM_data/net_drug_effect_by_tumor_type.Rds",
+        path+"Output/1.process_PRISM_data/TCGA_project_to_PRISM_tissue_enriched.Rds",
+        path+"Output/2.LINCS_preprocessing/LINCS_experiments_and_cell_lines_per_drug_at_",
+        path+"Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_",
+        path+"Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_combined.Rds",
+        path+"Output/2.LINCS_preprocessing/PRISM_gene_association_with_toxicity_combined.Rds",
+        path+"Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_combined_incl.corrected.Rds",
+        path+"Output/3.Tumor_DEG/combined_tumor_vs_normal_DEG.Rds",
+        path+"Output/3.Tumor_DEG/average_log2_fold_change_vs_normal.Rds",
+        path+"Output/4.AUC_versus_connectivity_score"
 
 
 rule secondary_processing_script:
     input:
-        treatment_info_path = 'src/r_code/data/External_input/corsello_input/secondary-screen-replicate-treatment-info.csv',
-        pooling_info_path = "src/r_code/data/External_input/corsello_input/secondary-screen-pooling-info.csv",
-        secondary_MFI_path = "src/r_code/data/External_input/corsello_input/secondary-screen-mfi.csv",
-        sec_screencellline_info = "src/r_code/data/External_input/corsello_input/secondary-screen-cell-line-info.csv"
+        treatment_info_path = path+"External_input/corsello_input/secondary-screen-replicate-treatment-info.csv",
+        pooling_info_path = path+"External_input/corsello_input/secondary-screen-pooling-info.csv",
+        secondary_MFI_path = path+"External_input/corsello_input/secondary-screen-mfi.csv",
+        sec_screencellline_info = path+"External_input/corsello_input/secondary-screen-cell-line-info.csv"
 
     output:
-        #out = 'out/simpleTestOutput.txt',
-        secondary_drc_table ="src/r_code/data/External_input/DepMap_Public_21Q2/secondary_drc_table.csv"
+        #out = "out/simpleTestOutput.txt",
+        secondary_drc_table =path+"External_input/DepMap_Public_21Q2/secondary_drc_table.csv"
     params:
-        linea_ccle = config['linea_ccle'],
-        campioni = config['campioni'],
+        linea_ccle = config["linea_ccle"],
+        campioni = config["campioni"],
     script:
-        'r_code/1.secondary_processing_script.R'
+        "r_code/1.secondary_processing_script.R"
 
 rule adapt_dataset:
     input:
-        sec_scellline_info = "src/r_code/data/External_input/DepMap_Public_21Q2/secondary-screen-dose-response-curve-parameters.csv",
-        secondary_drc_table ="src/r_code/data/External_input/DepMap_Public_21Q2/secondary_drc_table.csv"
+        sec_scellline_info = path+"External_input/DepMap_Public_21Q2/secondary-screen-dose-response-curve-parameters.csv",
+        secondary_drc_table =path+"External_input/DepMap_Public_21Q2/secondary_drc_table.csv"
 
-        #data = 'data/testData.rds',
+        #data = "data/testData.rds",
     output:
-        #out = 'out/simpleTestOutput.txt',
-        secondary_sdrc ="src/r_code/data/External_input/DepMap_Public_21Q2/secondary-screen-dose-response-curve-parameters_reduced.csv"
+        #out = "out/simpleTestOutput.txt",
+        secondary_sdrc =path+"External_input/DepMap_Public_21Q2/secondary-screen-dose-response-curve-parameters_reduced.csv"
     params:
         myFactor = 2,
     script:
-        'r_code/2.adapt_dataset.R'
+        "r_code/2.adapt_dataset.R"
 
 rule process_PRISM_data:
     input:
-        input_file = "src/r_code/data/External_input/DepMap_Public_21Q2/secondary-screen-dose-response-curve-parameters_reduced.csv",
-        cell_lineinfo = 'src/r_code/data/External_input/DepMap_Public_21Q2/secondary-screen-cell-line-info.csv',
-        TCGA_project_to_PRISM_tissue='src/r_code/data/External_input/TCGA_project_to_PRISM_tissue.csv'
-        #data = 'data/testData.rds',
+        input_file = path+"External_input/DepMap_Public_21Q2/secondary-screen-dose-response-curve-parameters_reduced.csv",
+        cell_lineinfo = path+"External_input/DepMap_Public_21Q2/secondary-screen-cell-line-info.csv",
+        TCGA_project_to_PRISM_tissue=path+"External_input/TCGA_project_to_PRISM_tissue.csv",
+        fun_loadprism = path+"Functions/load_Prism_data_and_model.R",
+        fun_add_ass = path+"Functions/add_association_between_residuals_and_cellLine_ranef.R",
+        tumor_type = path+"External_input/GDC/tumor.txt"
+
+    #data = "data/testData.rds",
     output:
-        #out = 'out/simpleTestOutput.txt',
-        drug_ranef_and_sd ='src/r_code/data/Output/1.process_PRISM_data/drug_ranef_and_sd.Rds',
-        number_of_cellLines_tested_per_drug ="src/r_code/data/Output/1.process_PRISM_data/number_of_cellLines_tested_per_drug.Rds",
-        net_drug_effect_by_tumor_type='src/r_code/data/Output/1.process_PRISM_data/net_drug_effect_by_tumor_type.Rds',
-        TCGA_project_to_PRISM_tissue_enriched='src/r_code/data/Output/1.process_PRISM_data/TCGA_project_to_PRISM_tissue_enriched.Rds'
+        #out = "out/simpleTestOutput.txt",
+        drug_ranef_and_sd =path+"Output/1.process_PRISM_data/drug_ranef_and_sd.Rds",
+        number_of_cellLines_tested_per_drug =path+"Output/1.process_PRISM_data/number_of_cellLines_tested_per_drug.Rds",
+        net_drug_effect_by_tumor_type=path+"Output/1.process_PRISM_data/net_drug_effect_by_tumor_type.Rds",
+        TCGA_project_to_PRISM_tissue_enriched=path+"Output/1.process_PRISM_data/TCGA_project_to_PRISM_tissue_enriched.Rds"
     params:
         myFactor = 2,
     script:
-        'r_code/3.process_PRISM_data.R'
+        "r_code/3.process_PRISM_data.R"
 
 rule LINCS_preprocessing:
     input:
-        gctx_path = "src/r_code/data/External_input/LINCS/GSE92742_Broad_LINCS_Level3_INF_mlr12k_n1319138x12328.gctx",
-        drug_ranef_and_sd ='src/r_code/data/Output/1.process_PRISM_data/drug_ranef_and_sd.Rds',
-        
-        #data = 'data/testData.rds',
+        gctx_path = path+"External_input/LINCS/GSE92742_Broad_LINCS_Level3_INF_mlr12k_n1319138x12328.gctx",
+        drug_ranef_and_sd =path+"Output/1.process_PRISM_data/drug_ranef_and_sd.Rds",
+        load_LINCS_meta = path+"Functions/loadLINCSmeta.R",
+        gene_meta = path+"External_input/LINCS_meta"
+
+        #data = "data/testData.rds",
     output:
-        lincs_experiments = 'src/r_code/data/Output/2.LINCS_preprocessing/LINCS_experiments_and_cell_lines_per_drug_at_',
-        combined_deg_drug = 'src/r_code/data/Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_',
-        PRISM_combined_DEG_drugs ='src/r_code/data/Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_combined.Rds',
-        gene_association_with_toxicity = 'src/r_code/data/Output/2.LINCS_preprocessing/PRISM_gene_association_with_toxicity_combined.Rds',
-        PRISM_combined_DEG_drugs_corrected ='Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_combined_incl.corrected.Rds'
-        #out = 'out/simpleTestOutput.txt',
+        lincs_experiments = path+"Output/2.LINCS_preprocessing/LINCS_experiments_and_cell_lines_per_drug_at_",
+        combined_deg_drug = path+"Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_",
+        PRISM_combined_DEG_drugs =path+"Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_combined.Rds",
+        gene_association_with_toxicity = path+"Output/2.LINCS_preprocessing/PRISM_gene_association_with_toxicity_combined.Rds",
+        PRISM_combined_DEG_drugs_corrected ="Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_combined_incl.corrected.Rds"
+        #out = "out/simpleTestOutput.txt",
     params:
         myFactor = 2,
     script:
-        'r_code/4.LINCS_preprocessing.R'
+        "r_code/4.LINCS_preprocessing.R"
 
 rule tumor_DEG:
     input:
-        project_info ="src/r_code/data/External_input/GDC/GDC-PANCAN.project_info.tsv",
-        gene_expr = "src/r_code/data/External_input/GDC/GDC-PANCAN.htseq_counts.tsv",
-        drug_ranef_and_sd ='src/r_code/data/Output/1.process_PRISM_data/drug_ranef_and_sd.Rds',
-        #data = 'data/testData.rds',
+        project_info =path+"External_input/GDC/GDC-PANCAN.project_info.tsv",
+        gene_expr = path+"External_input/GDC/GDC-PANCAN.htseq_counts.tsv",
+        drug_ranef_and_sd =path+"Output/1.process_PRISM_data/drug_ranef_and_sd.Rds",
+        tumor_type_r= path+"External_input/GDC/tumor.txt"
+        #data = "data/testData.rds",
     output:
-        tumor_vs_normal = "src/r_code/data/Output/3.Tumor_DEG/combined_tumor_vs_normal_DEG.Rds",
-        average_log2fold = "src/r_code/data/Output/3.Tumor_DEG/average_log2_fold_change_vs_normal.Rds"
-        #out = 'out/simpleTestOutput.txt',
+        tumor_vs_normal = path+"Output/3.Tumor_DEG/combined_tumor_vs_normal_DEG.Rds",
+        average_log2fold = path+"Output/3.Tumor_DEG/average_log2_fold_change_vs_normal.Rds"
+        #out = "out/simpleTestOutput.txt",
 
     script:
-        'r_code/5.tumor_DEG.R'
+        "r_code/5.tumor_DEG.R"
 
 rule final:
     input:
-        TCGA_project_to_PRISM_tissue_enriched='src/r_code/data/Output/1.process_PRISM_data/TCGA_project_to_PRISM_tissue_enriched.Rds',
-        tumor_vs_normal = "src/r_code/data/Output/3.Tumor_DEG/combined_tumor_vs_normal_DEG.Rds",
-        drug_ranef_and_sd ='src/r_code/data/Output/1.process_PRISM_data/drug_ranef_and_sd.Rds',
-        PRISM_combined_DEG_drugs_corrected ='src/r_code/data/Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_combined_incl.corrected.Rds',
-        dir_path = "src/r_code/data/Output/4.AUC_versus_connectivity_score/",
-        gene_meta = "src/r_code/data/External_input/gene_meta.Rds"
-        #data = 'data/testData.rds',
+        TCGA_project_to_PRISM_tissue_enriched=path+"Output/1.process_PRISM_data/TCGA_project_to_PRISM_tissue_enriched.Rds",
+        tumor_vs_normal = path+"Output/3.Tumor_DEG/combined_tumor_vs_normal_DEG.Rds",
+        drug_ranef_and_sd =path+"Output/1.process_PRISM_data/drug_ranef_and_sd.Rds",
+        PRISM_combined_DEG_drugs_corrected =path+"Output/2.LINCS_preprocessing/PRISM_combined_DEG_drugs_combined_incl.corrected.Rds",
+        dir_path = path+"Output/4.AUC_versus_connectivity_score/",
+        gene_meta = path+"External_input/gene_meta.Rds"
+        #data = "data/testData.rds",
     output:
-        auc_conn ="src/r_code/data/Output/4.AUC_versus_connectivity_score/config['linea_ccle']/{config['scenario']}"
-        #out = 'out/simpleTestOutput.txt',
+        auc_conn =path+"Output/4.AUC_versus_connectivity_score/"+config["linea_ccle"]
+        #out = "out/simpleTestOutput.txt",
     params:
-        linea_ccle = config['linea_ccle'],
+        linea_ccle = config["linea_ccle"],
     script:
-        'r_code/6.AUC_versus_connectivity_score.R'
+        "r_code/6.AUC_versus_connectivity_score.R"
 
